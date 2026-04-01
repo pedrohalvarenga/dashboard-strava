@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>S-Works G4 Control | Pedro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --strava: #FC4C02; }
+        .bg-strava { background-color: var(--strava); }
+        .text-strava { color: var(--strava); }
+        .tab-active { border-bottom: 3px solid var(--strava); font-weight: 800; }
+    </style>
+</head>
+<body class="bg-[#f2f2f2] font-sans">
+
+    <nav class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-8">
+            <h1 class="text-2xl font-black text-strava italic tracking-tighter">STRAVA <span class="text-gray-400 font-light not-italic text-sm">PRO DASHBOARD</span></h1>
+            <div class="hidden md:flex space-x-6 text-sm uppercase tracking-widest text-gray-600">
+                <button onclick="showTab('dashboard')" id="btn-dashboard" class="tab-active py-2">Treinos</button>
+                <button onclick="showTab('coach')" id="btn-coach" class="py-2">Treinador AI</button>
+                <button onclick="showTab('garage')" id="btn-garage" class="py-2">Oficina</button>
+            </div>
+        </div>
+        <button id="connect-btn" onclick="authenticate()" class="bg-black text-white px-5 py-2 rounded font-bold text-xs hover:bg-gray-800 transition">CONECTAR STRAVA</button>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 mt-6">
+        
+        <div id="tab-dashboard">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-6 shadow-sm border border-gray-200">
+                    <p class="text-gray-400 text-xs font-bold uppercase">Distância (Mês)</p>
+                    <p id="dist-val" class="text-3xl font-black italic mt-1">0.0 km</p>
+                </div>
+                <div class="bg-white p-6 shadow-sm border border-gray-200">
+                    <p class="text-gray-400 text-xs font-bold uppercase">Ganho (Mês)</p>
+                    <p id="elev-val" class="text-3xl font-black italic mt-1 text-strava">0 m</p>
+                </div>
+                <div class="bg-white p-6 shadow-sm border border-gray-200">
+                    <p class="text-gray-400 text-xs font-bold uppercase">Eficiência Bateria</p>
+                    <p id="batt-val" class="text-3xl font-black italic mt-1 text-blue-600">-- %/km</p>
+                </div>
+                <div class="bg-white p-6 shadow-sm border border-gray-200">
+                    <p class="text-gray-400 text-xs font-bold uppercase">Consumo p/ 100m</p>
+                    <p id="climb-eff" class="text-3xl font-black italic mt-1 text-green-600">-- %</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 shadow-sm border border-gray-200 rounded-sm">
+                <h3 class="font-black italic mb-4 uppercase text-gray-500 text-xs">Análise de Performance Mensal</h3>
+                <canvas id="chartTreinos" height="100"></canvas>
+            </div>
+        </div>
+
+        <div id="tab-coach" class="hidden">
+            <div class="bg-white p-10 shadow-lg border-t-8 border-strava">
+                <h2 class="text-3xl font-black italic mb-6">RECOMENDAÇÃO DO TREINADOR</h2>
+                <div id="coach-content" class="space-y-6 text-xl text-gray-800 leading-relaxed">
+                    <p>Conecte seus dados para receber a análise de hoje.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-garage" class="hidden">
+            <div class="bg-white p-8 shadow-sm border border-gray-200">
+                <h2 class="text-2xl font-black italic mb-6 uppercase">Histórico de Manutenção - S-Works G4</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-8 bg-gray-50 p-4 rounded border">
+                    <input id="peca" type="text" placeholder="Peça (Ex: Corrente T-Type)" class="p-2 border rounded text-sm">
+                    <input id="valor" type="number" placeholder="Valor (R$)" class="p-2 border rounded text-sm">
+                    <input id="mec" type="text" placeholder="Mecânico" class="p-2 border rounded text-sm">
+                    <input id="data-m" type="date" class="p-2 border rounded text-sm">
+                    <button onclick="addMaint()" class="bg-strava text-white font-bold rounded text-xs py-2">ADICIONAR</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left bg-gray-100 text-xs font-bold text-gray-500 uppercase">
+                                <th class="p-4">Serviço/Peça</th>
+                                <th class="p-4">Km na Troca</th>
+                                <th class="p-4">Valor</th>
+                                <th class="p-4">Próxima Revisão</th>
+                                <th class="p-4">Mecânico</th>
+                            </tr>
+                        </thead>
+                        <tbody id="m-body" class="text-sm divide-y divide-gray-100 italic">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const CLIENT_ID = '219330';
+        const CLIENT_SECRET = '831fb08d94dc94c13102776d6389e5a8f92a1a31';
+        let bikeKmTotal = 0;
+
+        function showTab(tab) {
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('tab-active'));
+            document.getElementById('btn-' + tab).classList.add('tab-active');
+        }
+
+        function authenticate() {
+            const redirect = window.location.href.split('?')[0];
+            window.location.href = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${redirect}&approval_prompt=auto&scope=read,activity:read_all`;
+        }
+
+        async function processLogin() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (!code) return;
+
+            document.getElementById('connect-btn').innerText = "ATUALIZANDO...";
+
+            const resp = await fetch('https://www.strava.com/oauth/token', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    client_id: CLIENT_ID,
+                    client_secret: CLIENT_SECRET,
+                    code: code,
+                    grant_type: 'authorization_code'
+                })
+            });
+            const data = await resp.json();
+            loadActivities(data.access_token);
+        }
+
+        async function loadActivities(token) {
+            const resp = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=50', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const activities = await resp.json();
+            
+            // Prioridade Specialized: Se 2 treinos no mesmo dia, remove o duplicado (preservando o de maior info)
+            const cleanData = activities.filter((v,i,a) => a.findIndex(t => t.start_date_local.split('T')[0] === v.start_date_local.split('T')[0]) === i);
+
+            renderStats(cleanData);
+            updateCoach(cleanData);
+        }
+
+        function renderStats(data) {
+            let km = 0; let elev = 0;
+            let labels = []; let points = [];
+
+            data.forEach(a => {
+                km += a.distance/1000;
+                elev += a.total_elevation_gain;
+                labels.unshift(new Date(a.start_date).toLocaleDateString());
+                points.unshift(a.total_elevation_gain);
+            });
+
+            document.getElementById('dist-val').innerText = km.toFixed(1) + ' km';
+            document.getElementById('elev-val').innerText = Math.round(elev) + ' m';
+            bikeKmTotal = km; // Simplificação para manutenção
+
+            // Gráfico
+            new Chart(document.getElementById('chartTreinos'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ganho de Altitude (m)',
+                        data: points,
+                        borderColor: '#FC4C02',
+                        backgroundColor: 'rgba(252, 76, 2, 0.05)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                }
+            });
+        }
+
+        function updateCoach(data) {
+            const last = data[0];
+            const content = document.getElementById('coach-content');
+            
+            // Lógica E-MTB: 850W Pico / 111Nm Torque
+            content.innerHTML = `
+                <p>⚡ <strong>Gestão de Bateria:</strong> No seu último treino de <strong>${(last.distance/1000).toFixed(1)}km</strong>, você enfrentou <strong>${last.total_elevation_gain}m</strong> de subida. Como você está em Juiz de Fora, lembre-se: subidas acima de 12% de inclinação consomem 3x mais bateria se o torque estiver no máximo. Tente o modo "Trail" em vez do "Turbo" em trechos longos.</p>
+                <p>🚴 <strong>Dica de Treino:</strong> Você tem focado muito em altimetria. Sua musculatura precisa de um treino de cadência plana (asfalto) na próxima saída para melhorar a eficiência do motor central da S-Works.</p>
+                <p>🛠️ <strong>Alerta Técnica:</strong> Seu acumulado mensal sugere que em 15 dias será necessário lubrificar os links da suspensão traseira (G4 exige atenção aqui).</p>
+            `;
+        }
+
+        function addMaint() {
+            const peca = document.getElementById('peca').value;
+            const valor = document.getElementById('valor').value;
+            const mec = document.getElementById('mec').value;
+            const data = document.getElementById('data-m').value;
+            
+            const row = `<tr class="border-b border-gray-50">
+                <td class="p-4 font-bold text-gray-700 uppercase text-xs">${peca}</td>
+                <td class="p-4">${bikeKmTotal.toFixed(0)} km</td>
+                <td class="p-4 text-green-600 font-bold">R$ ${valor}</td>
+                <td class="p-4 text-orange-500 font-bold underline">Em 1.500 km</td>
+                <td class="p-4 font-bold text-gray-500">${mec}</td>
+            </tr>`;
+            document.getElementById('m-body').innerHTML += row;
+        }
+
+        processLogin();
+    </script>
+</body>
+</html>
