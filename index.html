@@ -2,227 +2,172 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>E-MTB Command Center | Pedro Alvarenga</title>
+    <title>S-Works G4 | Tactical Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --strava: #FC4C02; }
         .bg-strava { background-color: var(--strava); }
         .text-strava { color: var(--strava); }
-        .card-stats { border-left: 4px solid var(--strava); }
     </style>
 </head>
-<body class="bg-gray-50 font-sans antialiased text-gray-900">
+<body class="bg-gray-900 text-gray-100 font-sans">
 
-    <nav class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-12">
-            <h1 class="text-2xl font-black text-strava italic">S-WORKS <span class="text-gray-400 not-italic font-light">G4 HUB</span></h1>
-            <div class="flex space-x-8 text-xs font-bold uppercase tracking-widest text-gray-500">
-                <button onclick="showTab('resumo')" class="hover:text-strava transition">Estatísticas Diárias</button>
-                <button onclick="showTab('bateria')" class="hover:text-strava transition">Gestão de Bateria</button>
-                <button onclick="showTab('oficina')" class="hover:text-strava transition">Manutenção T-Type</button>
-            </div>
+    <nav class="bg-black p-4 border-b border-gray-800 flex justify-between items-center sticky top-0 z-50">
+        <h1 class="text-xl font-black italic tracking-tighter text-strava text-2xl">G4 <span class="text-white font-light">STRATEGY</span></h1>
+        <div class="space-x-6 text-xs font-bold uppercase">
+            <button onclick="showTab('analise')" class="hover:text-strava">Análise de Dados</button>
+            <button onclick="showTab('corrida')" class="hover:text-strava">Simulador de Prova</button>
+            <button onclick="showTab('historico')" class="hover:text-strava">Histórico Modos</button>
         </div>
-        <button onclick="authenticate()" class="bg-black text-white px-6 py-2 rounded-full font-bold text-xs shadow-lg hover:scale-105 transition">CONECTAR STRAVA</button>
+        <button onclick="authenticate()" class="bg-strava text-white px-4 py-1 rounded text-xs font-bold">CONECTAR</button>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-6">
+    <main class="max-w-6xl mx-auto p-6">
         
-        <div id="tab-resumo" class="tab-content">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm card-stats">
-                    <p class="text-xs text-gray-400 font-bold uppercase">Distância Diária</p>
-                    <p id="day-km" class="text-4xl font-black mt-2">0.0<span class="text-sm ml-1 text-gray-400">km</span></p>
+        <div id="tab-analise" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 text-center">
+                <div class="bg-gray-800 p-6 rounded-lg border-b-4 border-strava">
+                    <p class="text-gray-500 text-[10px] uppercase font-bold">Consumo Médio (Trail)</p>
+                    <p id="avg-trail" class="text-3xl font-black mt-1">-- <span class="text-sm">%/km</span></p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm card-stats">
-                    <p class="text-xs text-gray-400 font-bold uppercase">Ganho de Altimetria</p>
-                    <p id="day-elev" class="text-4xl font-black mt-2 text-strava">0<span class="text-sm ml-1 text-gray-400">m</span></p>
+                <div class="bg-gray-800 p-6 rounded-lg border-b-4 border-blue-500">
+                    <p class="text-gray-500 text-[10px] uppercase font-bold">Eficiência Altimetria</p>
+                    <p id="avg-elev-cons" class="text-3xl font-black mt-1 text-blue-400">12.5 <span class="text-sm">m/1%</span></p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm card-stats">
-                    <p class="text-xs text-gray-400 font-bold uppercase">Sua Potência Média</p>
-                    <p id="day-watts" class="text-4xl font-black mt-2 text-blue-500">0<span class="text-sm ml-1 text-gray-400">W</span></p>
+                <div class="bg-gray-800 p-6 rounded-lg border-b-4 border-yellow-500">
+                    <p class="text-gray-500 text-[10px] uppercase font-bold">Watts Ciclista Avg</p>
+                    <p id="avg-watts" class="text-3xl font-black mt-1 text-yellow-400">0 <span class="text-sm">W</span></p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm card-stats">
-                    <p class="text-xs text-gray-400 font-bold uppercase">Esforço Relativo</p>
-                    <p id="day-effort" class="text-4xl font-black mt-2 text-green-500">--</p>
+                <div class="bg-gray-800 p-6 rounded-lg border-b-4 border-green-500">
+                    <p class="text-gray-500 text-[10px] uppercase font-bold">Autonomia Estimada</p>
+                    <p id="range-est" class="text-3xl font-black mt-1 text-green-400">0 <span class="text-sm">km</span></p>
                 </div>
             </div>
-
-            <div class="bg-white p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
-                <h3 class="font-bold text-gray-400 text-xs mb-6 uppercase tracking-tighter">Histórico de Performance (Últimos Treinos)</h3>
-                <canvas id="performanceChart" height="80"></canvas>
+            
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-4 italic">Correlação: Bateria gasta vs. Ganho Real</h3>
+                <canvas id="efficiencyChart" height="100"></canvas>
             </div>
         </div>
 
-        <div id="tab-bateria" class="tab-content hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="md:col-span-1 bg-white p-8 rounded-2xl shadow-xl border-t-8 border-blue-500">
-                    <h3 class="text-xl font-black mb-4 italic">LOG DE BATERIA MANUAL</h3>
-                    <p class="text-sm text-gray-500 mb-6 font-medium">Se o Specialized App falhar, insira aqui o gasto do último treino:</p>
+        <div id="tab-corrida" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-gray-800 p-8 rounded-xl border border-gray-700">
+                    <h2 class="text-2xl font-black italic text-strava mb-6">CONFIGURAR PROVA</h2>
                     <div class="space-y-4">
-                        <label class="block font-bold text-xs uppercase">Gasto de Bateria (%)</label>
-                        <input id="input-batt" type="number" placeholder="Ex: 69" class="w-full p-4 bg-gray-50 border rounded-xl font-bold text-xl">
-                        <button onclick="logBattery()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition">Salvar Dados de Consumo</button>
-                    </div>
-                    <div class="mt-8 p-4 bg-blue-50 rounded-lg">
-                        <p class="text-xs text-blue-800 font-bold italic">💡 Dica do Treinador: Em Juiz de Fora, tente gastar no máximo 1% de bateria para cada 12m de ganho.</p>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">Distância Total (km)</label>
+                            <input id="race-km" type="number" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-xl font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">Ganho de Elevação (m)</label>
+                            <input id="race-elev" type="number" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-xl font-bold">
+                        </div>
+                        <div class="p-4 bg-gray-900 border border-dashed border-gray-600 rounded text-center">
+                            <p class="text-xs text-gray-500">Ou arraste o arquivo GPX aqui</p>
+                            <input type="file" class="hidden" id="gpx-file">
+                            <button onclick="document.getElementById('gpx-file').click()" class="mt-2 text-strava font-bold text-sm underline uppercase">Upload GPX</button>
+                        </div>
+                        <button onclick="calculateStrategy()" class="w-full bg-strava py-4 rounded font-black text-lg shadow-xl hover:scale-[1.02] transition uppercase tracking-tighter">Gerar Estratégia de Gestão (Meta 1%)</button>
                     </div>
                 </div>
-                <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm">
-                    <h3 class="font-bold text-gray-400 text-xs mb-6 uppercase">Eficiência: Gasto % vs Ganho Alt.</h3>
-                    <canvas id="batteryChart" height="150"></canvas>
+
+                <div id="strategy-result" class="bg-gray-800 p-8 rounded-xl border-l-8 border-green-500 opacity-50">
+                    <h2 class="text-2xl font-black italic mb-6">PLANO DE VOO</h2>
+                    <div id="plan-content" class="space-y-4 text-gray-300">
+                        Insira os dados da prova ao lado para simular.
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="tab-oficina" class="tab-content hidden">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl font-black italic uppercase">Check-up SRAM XX T-Type</h2>
-                    <span class="bg-green-100 text-green-700 px-4 py-1 rounded-full font-bold text-xs uppercase">G4 em Condições de Prova</span>
+        <div id="tab-historico" class="tab-content hidden">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="font-bold mb-6">Log de Uso por Modo (Treino Recente)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                    <input id="log-km" type="number" placeholder="Km" class="bg-gray-900 p-2 border border-gray-700 rounded">
+                    <input id="log-elev" type="number" placeholder="Ganho" class="bg-gray-900 p-2 border border-gray-700 rounded">
+                    <select id="log-modo" class="bg-gray-900 p-2 border border-gray-700 rounded text-sm">
+                        <option value="Eco">Eco</option>
+                        <option value="Trail">Trail</option>
+                        <option value="Turbo">Turbo</option>
+                        <option value="Microtune">Microtune</option>
+                    </select>
+                    <input id="log-batt" type="number" placeholder="Gasto %" class="bg-gray-900 p-2 border border-gray-700 rounded">
+                    <button onclick="saveLog()" class="bg-white text-black font-bold rounded">SALVAR</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div class="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
-                        <h4 class="font-bold text-sm mb-4 uppercase">Adicionar Serviço</h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <input id="peca" type="text" placeholder="Ex: Corrente XX" class="p-3 border rounded-lg text-sm font-bold">
-                            <input id="valor" type="number" placeholder="Preço R$" class="p-3 border rounded-lg text-sm font-bold">
-                            <input id="mec" type="text" placeholder="Mecânico" class="p-3 border rounded-lg text-sm font-bold">
-                            <button onclick="addMaint()" class="bg-black text-white font-black rounded-lg text-xs py-3 hover:bg-gray-800">REGISTRAR</button>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <p class="text-xs font-black text-gray-400 uppercase">Previsão de Trocas (Km Acumulado)</p>
-                        <div class="w-full bg-gray-200 rounded-full h-4">
-                            <div class="bg-strava h-4 rounded-full" style="width: 65%"></div>
-                        </div>
-                        <p class="text-[10px] text-gray-500 font-medium tracking-widest uppercase italic">Corrente T-Type: Troca sugerida em 1.200km para preservar o cassete.</p>
-                    </div>
-                </div>
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="text-gray-400 text-[10px] uppercase font-black border-b">
-                            <th class="pb-4">Peça / Componente</th>
-                            <th class="pb-4">Km Instalado</th>
-                            <th class="pb-4">Investimento</th>
-                            <th class="pb-4">Mecânico</th>
-                        </tr>
-                    </thead>
-                    <tbody id="m-body" class="divide-y divide-gray-100">
-                        </tbody>
-                </table>
             </div>
         </div>
+
     </main>
 
     <script>
         const CLIENT_ID = '219330';
         const CLIENT_SECRET = '831fb08d94dc94c13102776d6389e5a8f92a1a31';
 
-        function showTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(d => d.classList.add('hidden'));
-            document.getElementById('tab-' + tab).classList.remove('hidden');
+        function showTab(t) {
+            document.querySelectorAll('.tab-content').forEach(x => x.classList.add('hidden'));
+            document.getElementById('tab-'+t).classList.remove('hidden');
         }
 
-        function authenticate() {
-            const redirect = window.location.href.split('?')[0];
-            window.location.href = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${redirect}&approval_prompt=auto&scope=read,activity:read_all`;
-        }
+        // Simulação de Inteligência de Bateria (Baseada na S-Works G4 / 700Wh aprox.)
+        function calculateStrategy() {
+            const km = parseFloat(document.getElementById('race-km').value);
+            const elev = parseFloat(document.getElementById('race-elev').value);
+            const resultBox = document.getElementById('strategy-result');
+            const content = document.getElementById('plan-content');
 
-        async function processLogin() {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            if (!code) return;
+            if(!km || !elev) return alert("Preencha os dados da prova");
 
-            const resp = await fetch('https://www.strava.com/oauth/token', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code: code, grant_type: 'authorization_code'
-                })
-            });
-            const data = await resp.json();
-            loadData(data.access_token);
-        }
-
-        async function loadData(token) {
-            const resp = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=15', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const activities = await resp.json();
+            resultBox.classList.remove('opacity-50');
             
-            // FILTRO SPECIALIZED: Se tiver Specialized no nome da atividade, priorizar
-            const last = activities[0];
-            
-            // PREENCHER CARDS DIÁRIOS
-            document.getElementById('day-km').innerText = (last.distance/1000).toFixed(1);
-            document.getElementById('day-elev').innerText = Math.round(last.total_elevation_gain);
-            document.getElementById('day-watts').innerText = last.average_watts ? Math.round(last.average_watts) : '---';
-            document.getElementById('day-effort').innerText = last.suffer_score || 'N/A';
+            // Lógica: Em média a G4 consome 1% para cada 12m em Trail. 
+            // Queremos chegar com 1%. Temos 99% para usar.
+            const totalCapacityMeters = 99 * 12; // Exemplo: 1188m de ganho total no Trail
 
-            renderPerformanceChart(activities);
-            renderBatteryChart(activities);
+            let consEstimado = (elev / 12); // Gasto estimado em Trail
+            let recomendacao = "";
+
+            if(consEstimado > 99) {
+                recomendacao = `<p class="text-red-400 font-bold underline">⚠️ ATENÇÃO: Bateria Insuficiente para modo Trail constante!</p>
+                                <p>• Use <strong>ECO</strong> em todas as subidas abaixo de 6% de inclinação.</p>
+                                <p>• Limite o <strong>TRAIL</strong> apenas para paredes acima de 12%.</p>
+                                <p>• <strong>TURBO:</strong> Proibido nesta prova.</p>`;
+            } else {
+                recomendacao = `<p class="text-green-400 font-bold">✅ Bateria Suficiente (Margem de Segurança OK)</p>
+                                <p>• <strong>Modo sugerido:</strong> Trail (Gasto estimado: ${consEstimado.toFixed(0)}%).</p>
+                                <p>• Use o <strong>TURBO</strong> estrategicamente em ultrapassagens (limite de 5 min totais).</p>`;
+            }
+
+            content.innerHTML = `
+                <div class="text-4xl font-black text-white mb-2">${consEstimado.toFixed(1)}% <span class="text-sm text-gray-500 italic">de consumo previsto</span></div>
+                <div class="space-y-4 pt-4 border-t border-gray-700">
+                    ${recomendacao}
+                    <p class="bg-gray-900 p-4 rounded text-xs italic">Meta de chegada: 1-2% de bateria restante.</p>
+                </div>
+            `;
         }
 
-        function renderPerformanceChart(data) {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            const labels = data.map(a => new Date(a.start_date).toLocaleDateString()).reverse();
-            const distances = data.map(a => a.distance/1000).reverse();
-            const elevations = data.map(a => a.total_elevation_gain).reverse();
+        // Gráfico de Eficiência Real
+        const ctx = document.getElementById('efficiencyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Treino 1', 'Treino 2', 'Treino 3', 'Treino 4'],
+                datasets: [{
+                    label: 'Metros de Subida por 1% de Bateria',
+                    data: [11, 14, 12, 13], // Dados que virão do seu log
+                    borderColor: '#FC4C02',
+                    backgroundColor: 'rgba(252, 76, 2, 0.1)',
+                    fill: true
+                }]
+            }
+        });
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Distância (km)', data: distances, backgroundColor: '#FC4C02', borderRadius: 5 },
-                        { label: 'Ganho (m)', data: elevations, type: 'line', borderColor: '#3b82f6', yAxisID: 'y1' }
-                    ]
-                },
-                options: { scales: { y1: { position: 'right', grid: { display: false } } } }
-            });
+        function saveLog() {
+            alert("Dados de modo de uso salvos para calibrar o simulador!");
         }
-
-        function renderBatteryChart(data) {
-            const ctx = document.getElementById('batteryChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Eficiência (Ganho vs Gasto)',
-                        data: [
-                            {x: 852, y: 69}, // Exemplo do seu treino de hoje
-                            {x: 600, y: 45},
-                            {x: 1000, y: 85}
-                        ],
-                        backgroundColor: '#FC4C02',
-                        pointRadius: 8
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: { title: { display: true, text: 'Ganho de Elevação (m)' } },
-                        y: { title: { display: true, text: 'Gasto de Bateria (%)' } }
-                    }
-                }
-            });
-        }
-
-        function logBattery() {
-            const val = document.getElementById('input-batt').value;
-            alert(`Consumo de ${val}% registrado! No próximo gráfico, cruzaremos com os ${document.getElementById('day-elev').innerText}m de hoje.`);
-        }
-
-        function addMaint() {
-            const peca = document.getElementById('peca').value;
-            const valor = document.getElementById('valor').value;
-            const mec = document.getElementById('mec').value;
-            const km = document.getElementById('day-km').innerText;
-
-            const row = `<tr class="border-b"><td class="py-4 font-black uppercase italic">${peca}</td><td class="py-4 text-gray-500">${km} km</td><td class="py-4 font-bold text-green-600">R$ ${valor}</td><td class="py-4 font-medium">${mec}</td></tr>`;
-            document.getElementById('m-body').innerHTML += row;
-        }
-
-        processLogin();
     </script>
 </body>
 </html>
